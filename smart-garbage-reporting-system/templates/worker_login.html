@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Worker Login</title>
+
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css"/>
+
+<style>
+
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+font-family:'Poppins',sans-serif;
+}
+
+body{
+height:100vh;
+overflow:hidden;
+background:
+linear-gradient(rgba(0,0,0,.75),rgba(0,0,0,.85)),
+url('https://images.unsplash.com/photo-1497366754035-f200968a6e72?q=80&w=2070&auto=format&fit=crop');
+background-size:cover;
+background-position:center;
+display:flex;
+align-items:center;
+justify-content:center;
+color:white;
+}
+
+body::before{
+content:'';
+position:absolute;
+width:600px;
+height:600px;
+background:#00ff8840;
+filter:blur(150px);
+border-radius:50%;
+top:-200px;
+left:-150px;
+animation:move1 10s infinite alternate;
+}
+
+body::after{
+content:'';
+position:absolute;
+width:500px;
+height:500px;
+background:#00ffcc30;
+filter:blur(150px);
+border-radius:50%;
+bottom:-200px;
+right:-150px;
+animation:move2 12s infinite alternate;
+}
+
+@keyframes move1{
+from{transform:translateY(0px);}
+to{transform:translateY(80px);}
+}
+
+@keyframes move2{
+from{transform:translateY(0px);}
+to{transform:translateY(-80px);}
+}
+
+.login-card{
+position:relative;
+z-index:10;
+width:460px;
+padding:45px;
+border-radius:35px;
+background:rgba(255,255,255,0.06);
+backdrop-filter:blur(20px);
+border:1px solid rgba(0,255,136,.35);
+box-shadow:
+0 0 30px rgba(0,255,136,.25),
+0 0 80px rgba(0,255,136,.08);
+animation:fadeUp .9s ease;
+}
+
+@keyframes fadeUp{
+from{
+opacity:0;
+transform:translateY(40px);
+}
+to{
+opacity:1;
+transform:translateY(0);
+}
+}
+
+.logo-circle{
+width:130px;
+height:130px;
+margin:auto;
+border-radius:50%;
+background:
+linear-gradient(135deg,#00ff88,#00e0ff);
+display:flex;
+align-items:center;
+justify-content:center;
+font-size:65px;
+box-shadow:0 0 40px rgba(0,255,136,.4);
+margin-bottom:25px;
+}
+
+.title{
+font-size:55px;
+font-weight:800;
+text-align:center;
+line-height:1;
+}
+
+.title span{
+color:#00ff88;
+}
+
+.subtitle{
+text-align:center;
+color:#d4d4d8;
+margin-top:12px;
+margin-bottom:35px;
+font-size:18px;
+}
+
+.input-group{
+position:relative;
+margin-bottom:22px;
+}
+
+.input-group i{
+position:absolute;
+left:20px;
+top:50%;
+transform:translateY(-50%);
+color:#00ff88;
+font-size:18px;
+}
+
+.input-group input{
+width:100%;
+height:65px;
+background:rgba(0,0,0,.35);
+border:1px solid rgba(0,255,136,.25);
+border-radius:20px;
+padding-left:60px;
+padding-right:20px;
+color:white;
+font-size:17px;
+outline:none;
+transition:.3s;
+}
+
+.input-group input:focus{
+border-color:#00ff88;
+box-shadow:0 0 20px rgba(0,255,136,.2);
+}
+
+.login-btn{
+width:100%;
+height:65px;
+border:none;
+border-radius:20px;
+margin-top:10px;
+font-size:24px;
+font-weight:700;
+cursor:pointer;
+background:
+linear-gradient(90deg,#6cff47,#00e0ff);
+color:black;
+transition:.35s;
+box-shadow:0 0 25px rgba(0,255,136,.3);
+}
+
+.login-btn:hover{
+transform:translateY(-4px) scale(1.02);
+box-shadow:0 0 45px rgba(0,255,136,.45);
+}
+
+.footer{
+margin-top:30px;
+text-align:center;
+color:#00ff88;
+font-size:15px;
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="login-card">
+
+<div class="logo-circle">
+👷
+</div>
+
+<h1 class="title">
+Worker <span>Login</span>
+</h1>
+
+<p class="subtitle">
+Welcome back! Keep your city clean.
+</p>
+
+<div class="input-group">
+<i class="fa-solid fa-phone"></i>
+
+<input
+id="user"
+type="text"
+placeholder="Mobile Number">
+</div>
+
+<div class="input-group">
+<i class="fa-solid fa-lock"></i>
+
+<input
+id="pass"
+type="password"
+placeholder="OTP Will Be Verified">
+</div>
+
+<button
+class="login-btn"
+id="loginBtn"
+onclick="login()">
+
+Login →
+
+</button>
+
+<div class="footer">
+🛡 Authorized workers only
+</div>
+
+</div>
+
+<script>
+
+let currentMobile = '';
+
+async function login(){
+
+const mobile = document.getElementById('user').value;
+
+if(!mobile){
+
+alert('Enter mobile number');
+return;
+
+}
+
+currentMobile = mobile;
+
+const btn = document.getElementById('loginBtn');
+
+btn.innerHTML = `
+<i class="fas fa-spinner fa-spin"></i>
+Sending OTP...
+`;
+
+btn.disabled = true;
+
+try{
+
+const res = await fetch('/api/send-worker-otp',{
+
+method:'POST',
+
+headers:{
+'Content-Type':'application/json'
+},
+
+body:JSON.stringify({
+mobile
+})
+
+});
+
+const data = await res.json();
+
+console.log(data);
+
+if(data.success){
+
+btn.innerHTML = `
+<i class="fas fa-check"></i>
+OTP Sent
+`;
+
+const otp = prompt('Enter OTP (Check VS Code Terminal)');
+
+if(!otp){
+
+btn.innerHTML = 'Login →';
+btn.disabled = false;
+return;
+
+}
+
+const name = prompt('Enter Your Name');
+
+if(!name){
+
+btn.innerHTML = 'Login →';
+btn.disabled = false;
+return;
+
+}
+
+await verifyOTP(otp,name);
+
+}else{
+
+alert(data.message || 'Failed to send OTP');
+
+btn.innerHTML = 'Login →';
+btn.disabled = false;
+
+}
+
+}catch(err){
+
+console.log(err);
+
+alert('Server Error');
+
+btn.innerHTML = 'Login →';
+btn.disabled = false;
+
+}
+
+}
+
+async function verifyOTP(otp,name){
+
+try{
+
+const btn = document.getElementById('loginBtn');
+
+btn.innerHTML = `
+<i class="fas fa-spinner fa-spin"></i>
+Verifying...
+`;
+
+const res = await fetch('/api/verify-worker-otp',{
+
+method:'POST',
+
+headers:{
+'Content-Type':'application/json'
+},
+
+body:JSON.stringify({
+
+mobile:currentMobile,
+otp:otp,
+name:name
+
+})
+
+});
+
+const data = await res.json();
+
+console.log(data);
+
+if(data.success){
+
+btn.innerHTML = `
+<i class="fas fa-check"></i>
+Success
+`;
+
+setTimeout(()=>{
+
+window.location.href = data.redirect;
+
+},800);
+
+}else{
+
+alert(data.message || 'Invalid OTP');
+
+btn.innerHTML = 'Login →';
+btn.disabled = false;
+
+}
+
+}catch(err){
+
+console.log(err);
+
+alert('Verification Failed');
+
+const btn = document.getElementById('loginBtn');
+
+btn.innerHTML = 'Login →';
+btn.disabled = false;
+
+}
+
+}
+
+</script>
+
+</body>
+</html>

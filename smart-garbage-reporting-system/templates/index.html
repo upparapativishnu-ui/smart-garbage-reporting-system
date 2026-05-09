@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Smart Garbage</title>
+
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css"/>
+
+<style>
+body {
+  font-family: 'Inter', sans-serif;
+  background: linear-gradient(to bottom right, #020617, #0f172a, #111827);
+  overflow-x: hidden;
+}
+
+.glass {
+  background: rgba(255,255,255,0.06);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255,255,255,0.08);
+}
+
+.float-card {
+  transition: all 0.35s ease;
+}
+
+.float-card:hover {
+  transform: translateY(-8px) scale(1.02);
+  box-shadow: 0 25px 60px rgba(16,185,129,0.25);
+}
+
+.fade-up {
+  animation: fadeUp 0.8s ease;
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.glow {
+  box-shadow: 0 0 25px rgba(16,185,129,0.35);
+}
+
+.preview-img {
+  max-height: 450px;
+  object-fit: cover;
+}
+</style>
+</head>
+
+<body class="text-white min-h-screen">
+
+<div class="absolute w-[400px] h-[400px] bg-emerald-500/20 blur-[120px] rounded-full top-0 left-0"></div>
+<div class="absolute w-[350px] h-[350px] bg-cyan-500/20 blur-[120px] rounded-full bottom-0 right-0"></div>
+
+<div class="relative z-10 max-w-6xl mx-auto px-6 py-12 fade-up">
+
+<div class="flex items-center justify-between mb-16">
+
+  <div class="flex items-center gap-4">
+    <div class="w-16 h-16 rounded-3xl bg-gradient-to-br from-emerald-400 to-cyan-500 flex items-center justify-center text-4xl glow">
+      ♻️
+    </div>
+
+    <div>
+      <h1 class="text-5xl font-black tracking-tight">Smart Garbage</h1>
+      <p class="text-emerald-400 text-lg mt-1">Clean City • Smart Future</p>
+    </div>
+  </div>
+
+  <!-- UPDATED BUTTONS -->
+  <div class="flex gap-4">
+
+    <a href="/worker-login"
+    class="glass px-6 py-3 rounded-2xl hover:bg-white/10 transition flex items-center gap-3">
+      <i class="fa-solid fa-user"></i>
+      Worker Portal
+    </a>
+
+    <a href="/admin"
+    class="glass px-6 py-3 rounded-2xl hover:bg-white/10 transition flex items-center gap-3">
+      <i class="fa-solid fa-shield"></i>
+      Admin Portal
+    </a>
+
+  </div>
+
+</div>
+
+<div class="grid lg:grid-cols-2 gap-10 items-center">
+
+<div>
+
+  <h2 class="text-6xl font-black leading-tight mb-6">
+    Report Waste
+    <span class="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400">
+      Instantly
+    </span>
+  </h2>
+
+  <p class="text-zinc-400 text-xl leading-relaxed mb-10">
+    Help your city stay clean by reporting garbage with live location and image upload.
+  </p>
+
+  <div class="flex gap-4">
+
+    <div class="glass px-5 py-4 rounded-2xl text-center">
+      <h3 class="text-3xl font-bold text-emerald-400">24/7</h3>
+      <p class="text-zinc-400 text-sm">Monitoring</p>
+    </div>
+
+    <div class="glass px-5 py-4 rounded-2xl text-center">
+      <h3 class="text-3xl font-bold text-cyan-400">AI</h3>
+      <p class="text-zinc-400 text-sm">Detection</p>
+    </div>
+
+    <div class="glass px-5 py-4 rounded-2xl text-center">
+      <h3 class="text-3xl font-bold text-yellow-400">Fast</h3>
+      <p class="text-zinc-400 text-sm">Response</p>
+    </div>
+
+  </div>
+
+</div>
+
+<div class="glass rounded-[35px] p-8 float-card">
+
+<h3 class="text-3xl font-bold mb-8">Create Report</h3>
+
+<input type="file" id="photoInput" accept="image/*"
+class="w-full bg-zinc-900/60 border border-zinc-700 p-4 rounded-2xl mb-6">
+
+<div id="previewSection" class="hidden mb-6">
+  <img id="imagePreview" class="preview-img rounded-3xl w-full shadow-2xl">
+</div>
+
+<button onclick="getLocation()"
+class="w-full py-5 rounded-2xl bg-gradient-to-r from-cyan-500 to-blue-500 hover:scale-[1.02] transition-all font-semibold text-lg mb-6">
+📍 Get Live Location
+</button>
+
+<p id="loc" class="text-emerald-400 mb-6 text-center"></p>
+
+<textarea id="description"
+placeholder="Describe the garbage issue..."
+rows="4"
+class="w-full bg-zinc-900/60 border border-zinc-700 rounded-2xl p-5 resize-none focus:outline-none focus:ring-2 focus:ring-emerald-500 mb-6"></textarea>
+
+<button onclick="submitReport()"
+class="w-full py-5 rounded-2xl bg-gradient-to-r from-emerald-400 via-teal-400 to-cyan-500 text-black font-black text-xl hover:scale-[1.02] transition-all glow">
+Submit Report
+</button>
+
+</div>
+
+</div>
+
+</div>
+
+<script>
+
+let lat = null;
+let lng = null;
+let selectedFile = null;
+
+const input = document.getElementById('photoInput');
+
+input.addEventListener('change', (e) => {
+
+  const file = e.target.files[0];
+
+  if (!file) return;
+
+  selectedFile = file;
+
+  const reader = new FileReader();
+
+  reader.onload = function(ev) {
+
+    document.getElementById('imagePreview').src = ev.target.result;
+
+    document.getElementById('previewSection').classList.remove('hidden');
+
+  }
+
+  reader.readAsDataURL(file);
+
+});
+
+function getLocation() {
+
+  navigator.geolocation.getCurrentPosition((pos) => {
+
+    lat = pos.coords.latitude;
+    lng = pos.coords.longitude;
+
+    document.getElementById('loc').innerText =
+    `📍 ${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+
+  });
+
+}
+
+async function submitReport() {
+
+  const desc = document.getElementById('description').value;
+
+  const fd = new FormData();
+
+  fd.append('description', desc);
+  fd.append('location', 'User Location');
+  fd.append('latitude', lat);
+  fd.append('longitude', lng);
+  fd.append('image', selectedFile);
+
+  const btn = event.target;
+
+  btn.innerHTML = 'Submitting...';
+
+  await fetch('/api/report', {
+    method: 'POST',
+    body: fd
+  });
+
+  btn.innerHTML = 'Submitted ✅';
+
+  setTimeout(() => {
+    location.reload();
+  }, 1200);
+
+}
+
+</script>
+
+</body>
+</html>

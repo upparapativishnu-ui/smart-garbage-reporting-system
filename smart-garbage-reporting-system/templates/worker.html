@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Worker Dashboard</title>
+
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css"/>
+
+<style>
+body{
+font-family:'Inter',sans-serif;
+background:linear-gradient(to bottom right,#020617,#111827,#0f172a);
+}
+
+.glass{
+background:rgba(255,255,255,0.06);
+backdrop-filter:blur(20px);
+border:1px solid rgba(255,255,255,0.08);
+}
+
+.float{
+transition:all .3s ease;
+}
+
+.float:hover{
+transform:translateY(-8px) scale(1.02);
+box-shadow:0 20px 50px rgba(16,185,129,.2);
+}
+
+.glow{
+box-shadow:0 0 25px rgba(16,185,129,.25);
+}
+</style>
+</head>
+
+<body class="text-white min-h-screen p-8">
+
+<div class="absolute w-[400px] h-[400px] bg-emerald-500/20 blur-[120px] rounded-full top-0 left-0"></div>
+<div class="absolute w-[350px] h-[350px] bg-cyan-500/20 blur-[120px] rounded-full bottom-0 right-0"></div>
+
+<div class="relative z-10">
+
+<div class="flex justify-between items-center mb-12">
+
+<div class="flex items-center gap-4">
+<div class="w-16 h-16 rounded-3xl bg-gradient-to-br from-emerald-400 to-cyan-500 flex items-center justify-center text-4xl glow">
+👷
+</div>
+
+<div>
+<h1 class="text-4xl font-black">Worker Dashboard</h1>
+<p class="text-emerald-400">Smart Cleaning Operations</p>
+</div>
+</div>
+
+<button onclick="logout()"
+class="bg-red-500 hover:bg-red-600 px-6 py-3 rounded-2xl font-semibold transition-all">
+Logout
+</button>
+
+</div>
+
+<div class="grid lg:grid-cols-3 gap-8">
+
+<div class="lg:col-span-2">
+<h2 class="text-3xl font-bold mb-6">Assigned Jobs</h2>
+
+<div id="jobs" class="space-y-6"></div>
+</div>
+
+<div class="space-y-6">
+
+<div class="glass rounded-3xl p-8 float">
+<p class="text-zinc-400">Today's Jobs</p>
+<h1 class="text-6xl font-black mt-3 text-emerald-400" id="jobCount">0</h1>
+</div>
+
+<div class="glass rounded-3xl p-8 float">
+<p class="text-zinc-400 mb-3">Status</p>
+
+<div class="space-y-4">
+<div class="flex justify-between">
+<span>Pending</span>
+<span id="pending">0</span>
+</div>
+
+<div class="flex justify-between">
+<span>In Progress</span>
+<span id="progress">0</span>
+</div>
+
+<div class="flex justify-between">
+<span>Completed</span>
+<span id="completed">0</span>
+</div>
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+<script>
+
+async function loadJobs(){
+
+const res = await fetch('/api/reports');
+const reports = await res.json();
+
+const jobs = reports.filter(r =>
+r.status === 'Pending' || r.status === 'In Progress'
+);
+
+document.getElementById('jobCount').innerText = jobs.length;
+
+document.getElementById('pending').innerText =
+reports.filter(r=>r.status==='Pending').length;
+
+document.getElementById('progress').innerText =
+reports.filter(r=>r.status==='In Progress').length;
+
+document.getElementById('completed').innerText =
+reports.filter(r=>r.status==='Completed').length;
+
+const container = document.getElementById('jobs');
+container.innerHTML = '';
+
+jobs.forEach(job=>{
+
+container.innerHTML += `
+<div class="glass rounded-[30px] overflow-hidden float">
+
+<img src="/static/uploads/${job.image}"
+onerror="this.style.display='none'"
+class="w-full h-72 object-cover">
+
+<div class="p-6">
+
+<div class="flex justify-between items-start mb-4">
+
+<div>
+<h2 class="text-2xl font-bold">${job.ai_detected}</h2>
+<p class="text-zinc-400 mt-2">${job.description}</p>
+</div>
+
+<span class="px-4 py-2 rounded-full text-sm font-bold
+${job.status==='Pending' ? 'bg-yellow-400 text-black':''}
+${job.status==='In Progress' ? 'bg-cyan-400 text-black':''}">
+${job.status}
+</span>
+
+</div>
+
+<div class="flex gap-3 mt-6">
+
+${job.status==='Pending' ? `
+<button onclick="updateStatus('${job.id}','In Progress')"
+class="flex-1 py-3 rounded-2xl bg-cyan-500 hover:scale-[1.03] transition-all font-semibold">
+Accept Job
+</button>
+` : ''}
+
+${job.status==='In Progress' ? `
+<button onclick="updateStatus('${job.id}','Completed')"
+class="flex-1 py-3 rounded-2xl bg-emerald-500 hover:scale-[1.03] transition-all font-semibold text-black">
+Mark Completed
+</button>
+` : ''}
+
+</div>
+
+</div>
+
+</div>
+`;
+
+});
+
+}
+
+async function updateStatus(id,status){
+
+await fetch('/api/update-status/'+id,{
+method:'PUT',
+headers:{'Content-Type':'application/json'},
+body:JSON.stringify({status})
+});
+
+loadJobs();
+
+}
+
+async function sendLiveLocation(){
+
+navigator.geolocation.getCurrentPosition(async(pos)=>{
+
+await fetch('/api/update-worker-location',{
+
+method:'POST',
+
+headers:{
+'Content-Type':'application/json'
+},
+
+body:JSON.stringify({
+
+latitude:pos.coords.latitude,
+longitude:pos.coords.longitude
+
+})
+
+});
+
+});
+
+}
+
+function logout() {
+
+if(confirm("Logout from Worker Dashboard?")){
+
+window.location.href = '/logout';
+
+}
+
+}
+
+window.onload = () => {
+
+loadJobs();
+
+sendLiveLocation();
+
+setInterval(sendLiveLocation,5000);
+
+};
+
+</script>
+
+</body>
+</html>

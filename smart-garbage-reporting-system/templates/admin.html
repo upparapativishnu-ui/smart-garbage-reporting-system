@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Premium Admin Dashboard</title>
+
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<style>
+body {
+  font-family: 'Inter', sans-serif;
+  background: linear-gradient(to bottom right,#020617,#111827,#0f172a);
+}
+
+.glass {
+  background: rgba(255,255,255,0.06);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255,255,255,0.08);
+}
+
+.float-card {
+  transition: all 0.35s ease;
+}
+
+.float-card:hover {
+  transform: translateY(-8px) scale(1.02);
+  box-shadow: 0 20px 50px rgba(16,185,129,0.2);
+}
+
+.fade-up {
+  animation: fadeUp 0.7s ease;
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.glow {
+  box-shadow: 0 0 25px rgba(16,185,129,0.25);
+}
+
+.nav-btn {
+  transition: all 0.3s ease;
+}
+
+.nav-btn:hover {
+  background: rgba(255,255,255,0.08);
+}
+
+.active-tab {
+  background: linear-gradient(to right,#10b981,#06b6d4);
+  color: black;
+  font-weight: bold;
+}
+</style>
+</head>
+
+<body class="text-white min-h-screen overflow-hidden">
+
+<div class="absolute w-[400px] h-[400px] bg-emerald-500/20 blur-[120px] rounded-full top-0 left-0"></div>
+<div class="absolute w-[350px] h-[350px] bg-cyan-500/20 blur-[120px] rounded-full bottom-0 right-0"></div>
+
+<div class="relative z-10 flex h-screen fade-up">
+
+<div class="w-72 glass border-r border-white/10 p-6 flex flex-col justify-between">
+
+<div>
+<div class="flex items-center gap-4 mb-14">
+<div class="w-14 h-14 rounded-3xl bg-gradient-to-br from-emerald-400 to-cyan-500 flex items-center justify-center text-3xl glow">
+♻️
+</div>
+<div>
+<h1 class="text-2xl font-black">Smart Garbage</h1>
+<p class="text-emerald-400 text-sm">Admin Control</p>
+</div>
+</div>
+
+<nav class="space-y-3">
+<button onclick="switchTab(0)" id="nav-0"
+class="nav-btn active-tab w-full text-left px-5 py-4 rounded-2xl flex items-center gap-3">
+<i class="fa-solid fa-chart-line"></i>
+Dashboard
+</button>
+
+<button onclick="switchTab(1)" id="nav-1"
+class="nav-btn w-full text-left px-5 py-4 rounded-2xl flex items-center gap-3">
+<i class="fa-solid fa-map-location-dot"></i>
+Live Map
+</button>
+
+<button onclick="switchTab(2)" id="nav-2"
+class="nav-btn w-full text-left px-5 py-4 rounded-2xl flex items-center gap-3">
+<i class="fa-solid fa-folder-open"></i>
+Reports
+</button>
+</nav>
+</div>
+
+<a href="/logout"
+class="bg-red-500 hover:bg-red-600 transition-all text-center py-4 rounded-2xl font-semibold">
+Logout
+</a>
+
+</div>
+
+<div class="flex-1 p-10 overflow-y-auto">
+
+<div id="tab-0">
+<h1 class="text-5xl font-black mb-10">Dashboard</h1>
+
+<div class="grid md:grid-cols-4 gap-6 mb-10">
+
+<div class="glass rounded-3xl p-8 float-card">
+<p class="text-zinc-400">Total Reports</p>
+<h2 id="totalReports" class="text-5xl font-black mt-3 text-white">0</h2>
+</div>
+
+<div class="glass rounded-3xl p-8 float-card">
+<p class="text-zinc-400">Pending</p>
+<h2 id="pendingCount" class="text-5xl font-black mt-3 text-yellow-400">0</h2>
+</div>
+
+<div class="glass rounded-3xl p-8 float-card">
+<p class="text-zinc-400">In Progress</p>
+<h2 id="inProgressCount" class="text-5xl font-black mt-3 text-cyan-400">0</h2>
+</div>
+
+<div class="glass rounded-3xl p-8 float-card">
+<p class="text-zinc-400">Completed</p>
+<h2 id="completedCount" class="text-5xl font-black mt-3 text-emerald-400">0</h2>
+</div>
+
+</div>
+</div>
+
+<div id="tab-1" class="hidden">
+<h1 class="text-5xl font-black mb-8">Live Garbage Map</h1>
+<div id="map" class="h-[600px] rounded-[35px] overflow-hidden shadow-2xl"></div>
+</div>
+
+<div id="tab-2" class="hidden">
+<h1 class="text-5xl font-black mb-8">Reports</h1>
+<div id="reportsContainer" class="grid lg:grid-cols-2 gap-8"></div>
+</div>
+
+</div>
+</div>
+
+<script>
+let map = null;
+
+function switchTab(tab){
+  document.querySelectorAll('[id^="tab-"]').forEach(el=>el.classList.add('hidden'));
+  document.querySelectorAll('[id^="nav-"]').forEach(el=>el.classList.remove('active-tab'));
+
+  document.getElementById('tab-'+tab).classList.remove('hidden');
+  document.getElementById('nav-'+tab).classList.add('active-tab');
+
+  if(tab===0) loadDashboard();
+  if(tab===1) initMap();
+  if(tab===2) loadReports();
+}
+
+async function loadDashboard(){
+  const res = await fetch('/api/reports');
+  const data = await res.json();
+
+  document.getElementById('totalReports').innerText = data.length;
+  document.getElementById('pendingCount').innerText = data.filter(r=>r.status=='Pending').length;
+  document.getElementById('inProgressCount').innerText = data.filter(r=>r.status=='In Progress').length;
+  document.getElementById('completedCount').innerText = data.filter(r=>r.status=='Completed').length;
+}
+
+async function initMap(){
+  if(map){
+    map.invalidateSize();
+    return;
+  }
+
+  map = L.map('map').setView([12.9716,77.5946], 12);
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
+  const res = await fetch('/api/reports');
+  const reports = await res.json();
+
+  reports.forEach(r=>{
+    if(r.latitude && r.longitude){
+      L.marker([r.latitude,r.longitude]).addTo(map)
+      .bindPopup(`
+      <b>${r.description}</b><br>
+      Status: ${r.status}<br>
+      AI: ${r.ai_detected}
+      `);
+    }
+  });
+}
+
+async function loadReports(){
+  const res = await fetch('/api/reports');
+  const reports = await res.json();
+
+  const container = document.getElementById('reportsContainer');
+  container.innerHTML = '';
+
+  reports.forEach(r=>{
+    container.innerHTML += `
+    <div class="glass rounded-[30px] overflow-hidden float-card">
+
+      <img src="/static/uploads/${r.image}"
+      onerror="this.style.display='none'"
+      class="w-full h-72 object-cover">
+
+      <div class="p-6">
+        <div class="flex justify-between items-start mb-4">
+          <div>
+            <p class="text-2xl font-bold">${r.ai_detected}</p>
+            <p class="text-zinc-400 mt-2">${r.description}</p>
+          </div>
+
+          <span class="px-4 py-2 rounded-full text-sm font-bold
+          ${r.status==='Pending' ? 'bg-yellow-400 text-black' : ''}
+          ${r.status==='In Progress' ? 'bg-cyan-400 text-black' : ''}
+          ${r.status==='Completed' ? 'bg-emerald-400 text-black' : ''}">
+          ${r.status}
+          </span>
+        </div>
+
+        <div class="flex gap-3 mt-6">
+          <button onclick="updateStatus('${r.id}','In Progress')"
+          class="flex-1 py-3 rounded-2xl bg-cyan-500 hover:scale-[1.03] transition-all font-semibold">
+          Start
+          </button>
+
+          <button onclick="updateStatus('${r.id}','Completed')"
+          class="flex-1 py-3 rounded-2xl bg-emerald-500 hover:scale-[1.03] transition-all font-semibold text-black">
+          Complete
+          </button>
+        </div>
+      </div>
+
+    </div>
+    `;
+  });
+}
+
+async function updateStatus(id,status){
+  await fetch('/api/update-status/'+id,{
+    method:'PUT',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({status})
+  });
+
+  loadDashboard();
+  loadReports();
+}
+
+window.onload = loadDashboard;
+</script>
+
+</body>
+</html>
